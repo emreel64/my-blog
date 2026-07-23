@@ -88,15 +88,48 @@
     transform: translateY(-50%);
     width: 76px;
     height: auto;
+    padding: 0;
+    background: none;
+    border: none;
     filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
-    pointer-events: none;
+    cursor: pointer;
     user-select: none;
   }
+  .avatar-badge img { width: 100%; height: auto; display: block; pointer-events: none; }
+  .avatar-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
   @media (max-width: 560px) {
     .site-header-inner { padding-right: 66px; }
     .avatar-badge { width: 52px; right: 1rem; }
   }
+
+  /* password gate */
+  .gate-backdrop {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(10, 12, 20, 0.5);
+    display: flex; align-items: center; justify-content: center; padding: 1.25rem;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
+  }
+  .gate-backdrop.open { opacity: 1; pointer-events: auto; }
+  .gate-box {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 12px 40px var(--shadow); padding: 1.4rem 1.4rem 1.2rem; width: min(320px, 92vw);
+  }
+  .gate-box p { margin: 0 0 0.9rem; font-size: 0.9rem; color: var(--ink-soft); }
+  .gate-box input {
+    width: 100%; font: inherit; font-size: 1rem; padding: 0.6rem 0.7rem;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--ground, var(--bg));
+    color: var(--ink); margin-bottom: 0.5rem;
+  }
+  .gate-box input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .gate-err { color: var(--red, #C0392B); font-size: 0.8rem; min-height: 1em; margin: 0 0 0.6rem; }
+  .gate-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+  .gate-actions button {
+    font: inherit; font-size: 0.9rem; font-weight: 600; padding: 0.5rem 1rem;
+    border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+  }
+  .gate-cancel { background: transparent; color: var(--ink-soft); border-color: var(--line); }
+  .gate-go { background: var(--accent); color: #fff; }
 
   .page {
     max-width: 640px;
@@ -186,8 +219,22 @@
     <h1 id="wordmark" class="serif">Blog</h1>
     <p class="site-sub" id="siteSub">a personal blog, kept here</p>
   </div>
-  <img class="avatar-badge" src="avatar.png" alt="" />
+  <button class="avatar-badge" id="avatarBtn" type="button" aria-label="Author">
+    <img src="avatar.png" alt="" />
+  </button>
 </header>
+
+<div class="gate-backdrop" id="gateBackdrop">
+  <div class="gate-box" role="dialog" aria-modal="true" aria-label="Enter password">
+    <p>Enter password</p>
+    <input type="password" id="gateInput" autocomplete="off" spellcheck="false" />
+    <p class="gate-err" id="gateErr"></p>
+    <div class="gate-actions">
+      <button class="gate-cancel" id="gateCancel" type="button">Cancel</button>
+      <button class="gate-go" id="gateGo" type="button">Enter</button>
+    </div>
+  </div>
+</div>
 
 <div class="page">
   <div class="topbar">
@@ -234,6 +281,39 @@
     applyTheme(current === "dark" ? "light" : "dark");
   });
   applyTheme(document.documentElement.getAttribute("data-theme") || "light");
+
+  /* ---------- hidden door: click the photo, enter the password ---------- */
+  (function () {
+    var PASS = "eMre2882";
+    var DEST = "my-planner.html";
+    var btn = document.getElementById("avatarBtn");
+    var back = document.getElementById("gateBackdrop");
+    var input = document.getElementById("gateInput");
+    var err = document.getElementById("gateErr");
+
+    function openGate() {
+      back.classList.add("open");
+      input.value = "";
+      err.textContent = "";
+      setTimeout(function () { input.focus(); }, 0);
+    }
+    function closeGate() { back.classList.remove("open"); }
+    function submit() {
+      if (input.value === PASS) { window.location.href = DEST; }
+      else { err.textContent = "Incorrect password."; input.select(); }
+    }
+
+    btn.addEventListener("click", openGate);
+    document.getElementById("gateGo").addEventListener("click", submit);
+    document.getElementById("gateCancel").addEventListener("click", closeGate);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); submit(); }
+    });
+    back.addEventListener("click", function (e) { if (e.target === back) closeGate(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && back.classList.contains("open")) closeGate();
+    });
+  })();
 
   function formatDate(ts) {
     return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
